@@ -10,6 +10,12 @@ from tensorflow_encrypted.protocol.pond import PondPublicTensor
 
 
 def register() -> Dict[str, Any]:
+    """
+    Register the tensorflow ops to the right conversion functions.
+
+    Returns:
+        Dictionary that contains a mapping from tensorflow op name to conversion function.
+    """
     reg = {
         'Placeholder': placeholder,
         'Const': constant,
@@ -38,16 +44,46 @@ def register() -> Dict[str, Any]:
 
 
 def placeholder(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     return tf.placeholder(node.attr["dtype"].type,
                           shape=node.attr["shape"].shape)
 
 
 def constant(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     # need to able to access the underlying weights return the node
     return node
 
 
 def matmul(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     a = converter.outputs[inputs[0]]
     b = converter.outputs[inputs[1]]
 
@@ -76,6 +112,16 @@ def matmul(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def conv2d(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     input = converter.outputs[inputs[0]]
     filter = converter.outputs[inputs[1]]
 
@@ -109,18 +155,48 @@ def conv2d(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def relu(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     input = converter.outputs[inputs[0]]
 
     return Relu(input.shape.as_list()).forward(input)
 
 
 def sigmoid(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     input = converter.outputs[inputs[0]]
 
     return Sigmoid(input.shape.as_list()).forward(input)
 
 
 def strided_slice(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     input = converter.outputs[inputs[0]]
     begin = converter.outputs[inputs[1]]
     end = converter.outputs[inputs[2]]
@@ -145,6 +221,16 @@ def strided_slice(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def pack(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     final_inputs = []
 
     for input in inputs:
@@ -154,6 +240,16 @@ def pack(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def bias_add(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     raise NotImplementedError()
 
     input = converter.outputs[inputs[0]]
@@ -163,6 +259,16 @@ def bias_add(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def maxpool(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     raise NotImplementedError()
 
     input = converter.outputs[inputs[0]]
@@ -173,12 +279,32 @@ def maxpool(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def shape(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     input = converter.outputs[inputs[0]]
 
     return input.shape
 
 
 def reshape(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     input = converter.outputs[inputs[0]]
     shape = converter.outputs[inputs[1]]
 
@@ -195,6 +321,16 @@ def reshape(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def transpose(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     input = converter.outputs[inputs[0]]
     perm = converter.outputs[inputs[1]]
 
@@ -213,6 +349,16 @@ def transpose(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def expand_dims(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     input = converter.outputs[inputs[0]]
     # axis = converter.outputs[inputs[1]]
 
@@ -222,6 +368,16 @@ def expand_dims(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def squeeze(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     input = converter.outputs[inputs[0]]
     axis = node.attr["squeeze_dims"].list.i
 
@@ -229,6 +385,16 @@ def squeeze(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def rsqrt(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     input = converter.outputs[inputs[0]]
 
     tensor = input.attr["value"].tensor
@@ -252,6 +418,16 @@ def rsqrt(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def add(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     a = converter.outputs[inputs[0]]
     b = converter.outputs[inputs[1]]
 
@@ -269,6 +445,16 @@ def add(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def sub(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     a = converter.outputs[inputs[0]]
     b = converter.outputs[inputs[1]]
 
@@ -286,6 +472,16 @@ def sub(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def mul(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     a = converter.outputs[inputs[0]]
     b = converter.outputs[inputs[1]]
 
@@ -303,6 +499,16 @@ def mul(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def avgpool(converter: Converter, node: Any, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: Converter:
+      node: Any:
+      inputs: List[str]:
+
+    Returns:
+
+    """
     input = converter.outputs[inputs[0]]
 
     ksize = node.attr["ksize"].list.i
@@ -324,6 +530,15 @@ def avgpool(converter: Converter, node: Any, inputs: List[str]) -> Any:
 
 
 def nodef_to_public_pond(converter: Converter, x: Any) -> PondPublicTensor:
+    """
+
+    Args:
+      converter: Converter:
+      x: Any:
+
+    Returns:
+
+    """
     dtype = x.attr["dtype"].type
     x_shape = [i.size for i in x.attr["value"].tensor.tensor_shape.dim]
 

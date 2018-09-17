@@ -1,6 +1,7 @@
 from typing import Optional, Type, List
 from types import TracebackType
 import tensorflow as tf
+from ..io import InputProvider
 
 
 _current_prot = None
@@ -18,6 +19,15 @@ class Protocol(object):
                  traceback: Optional[TracebackType]) -> Optional[bool]:
         set_protocol(None)
         return None
+
+    def define_private_input(
+        self,
+        provider: InputProvider,
+        apply_scaling: bool=True,
+        name: Optional[str]=None,
+        masked: bool=False
+    ) -> Union['PondPrivateTensor', 'PondMaskedTensor', List['PondPrivateTensor'], List['PondMaskedTensor']]:
+        raise NotImplementedError()
 
 
 def set_protocol(prot: Optional[Protocol]) -> None:

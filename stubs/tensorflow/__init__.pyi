@@ -190,6 +190,10 @@ class NodeDef:
     def attr(self) -> List['AttrValue']:
         ...
 
+    @property
+    def input(self) -> str:
+        ...
+
 
 class AttrValue:
     ...

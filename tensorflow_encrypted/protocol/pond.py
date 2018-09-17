@@ -209,7 +209,7 @@ class Pond(Protocol):
         self,
         provider: InputProvider,
         apply_scaling: bool=True,
-        name: str=None,
+        name: Optional[str]=None,
         masked: bool=False
     ) -> Union['PondPrivateTensor', 'PondMaskedTensor', List['PondPrivateTensor'], List['PondMaskedTensor']]:
 
