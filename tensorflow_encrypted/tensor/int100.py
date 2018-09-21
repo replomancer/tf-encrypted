@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import math
 import numpy as np
 import tensorflow as tf
-from typing import Union, Optional, List, Dict, Any
+from typing import Union, Optional, List, Dict, Any, Type
 
 from .crt import (
     gen_crt_decompose, gen_crt_recombine_lagrange, gen_crt_recombine_explicit,
@@ -13,6 +13,8 @@ from .crt import (
 )
 from .helpers import prod, log2
 from ..config import run
+from .factory import AbstractFactory
+from .tensor import AbstractTensor, AbstractConstant, AbstractVariable, AbstractPlaceholder
 
 
 #
@@ -50,7 +52,7 @@ _crt_sample_uniform = gen_crt_sample_uniform(m, INT_TYPE)
 _crt_sample_bounded = gen_crt_sample_bounded(m, INT_TYPE)
 
 
-class Int100Tensor(object):
+class Int100Tensor(AbstractTensor):
 
     modulus = M
     int_type = INT_TYPE
@@ -76,9 +78,39 @@ class Int100Tensor(object):
         return Int100Tensor(value, None)
 
     @staticmethod
+    def from_same(value: 'Int100Tensor') -> 'Int100Tensor':
+        return Int100Tensor.from_decomposed(value.backing)
+
+    @staticmethod
     def from_decomposed(value: Union[List[np.ndarray], List[tf.Tensor]]) -> 'Int100Tensor':
         assert type(value) in [tuple, list], type(value)
         return Int100Tensor(None, value)
+
+    @staticmethod
+    def stack(xs: List['Int100Tensor'], axis: int=0) -> 'Int100Tensor':
+        assert all(isinstance(x, Int100Tensor) for x in xs)
+        backing = [
+            tf.stack([x.backing[i] for x in xs], axis=axis)
+            for i in range(len(xs[0].backing))
+        ]
+        return Int100Tensor.from_decomposed(backing)
+
+    @staticmethod
+    def concat(xs: List['Int100Tensor'], axis: int = 0) -> 'Int100Tensor':
+        assert all(isinstance(x, Int100Tensor) for x in xs)
+        backing = [
+            tf.concat([x.backing[i] for x in xs], axis=axis)
+            for i in range(len(xs[0].backing))
+        ]
+        return Int100Tensor.from_decomposed(backing)
+
+    @staticmethod
+    def zero() -> 'Int100Tensor':
+        return Int100Tensor.from_decomposed(np.array([0]) * len(m))
+
+    @staticmethod
+    def one() -> 'Int100Tensor':
+        return Int100Tensor.from_decomposed(np.array([1]) * len(m))
 
     def eval(self, sess: tf.Session, feed_dict: Dict[Any, Any]={}, tag: Optional[str]=None) -> 'Int100Tensor':
         evaluated_backing = run(sess, self.backing, feed_dict=feed_dict, tag=tag)
@@ -97,6 +129,9 @@ class Int100Tensor(object):
     @staticmethod
     def sample_bounded(shape: List[int], bitlength: int) -> 'Int100Tensor':
         return _sample_bounded(shape, bitlength)
+
+    def __getitem__(self, slice):
+        return self.from_decomposed([x[slice] for x in self.decomposed_value])
 
     def __repr__(self) -> str:
         return 'Int100Tensor({})'.format(self.shape)
@@ -132,7 +167,7 @@ class Int100Tensor(object):
     def transpose(self, perm=None) -> 'Int100Tensor':
         return _transpose(self, perm=perm)
 
-    def strided_slice(self, args: Any, kwargs: Any):
+    def strided_slice(self, args: Any, kwargs: Any) -> 'Int100Tensor':
         return _strided_slice(self, args, kwargs)
 
     def reshape(self, axes: List[int]) -> 'Int100Tensor':
@@ -143,6 +178,10 @@ class Int100Tensor(object):
 
     def squeeze(self, axis: List[int]) -> 'Int100Tensor':
         return _squeeze(self, axis)
+
+    def negative(self) -> 'Int100Tensor':
+        # TODO[Morten] there's probably a more efficient way
+        return Int100Tensor.zero() - self
 
 
 def _lift(x: Union[Int100Tensor, int]) -> Int100Tensor:
@@ -226,28 +265,28 @@ def _conv2d(x, y, strides, padding):
     return out
 
 
-def _mod(x, k):
+def _mod(x: Int100Tensor, k: int) -> Int100Tensor:
     y_backing = _crt_mod(x.backing, k)
     return Int100Tensor.from_decomposed(y_backing)
 
 
-def _sample_uniform(shape):
+def _sample_uniform(shape: List[int]) -> Int100Tensor:
     backing = _crt_sample_uniform(shape)
     return Int100Tensor.from_decomposed(backing)
 
 
-def _sample_bounded(shape, bitlength):
+def _sample_bounded(shape: List[int], bitlength: int) -> Int100Tensor:
     backing = _crt_sample_bounded(shape, bitlength)
     return Int100Tensor.from_decomposed(backing)
 
 
-def _transpose(x, perm=None):
+def _transpose(x: Int100Tensor, perm: Optional[List[int]]=None) -> Int100Tensor:
     assert isinstance(x, Int100Tensor), type(x)
     backing = [tf.transpose(xi, perm=perm) for xi in x.backing]
     return Int100Tensor.from_decomposed(backing)
 
 
-def _strided_slice(x: Int100Tensor, args: Any, kwargs: Any):
+def _strided_slice(x: Int100Tensor, args: Any, kwargs: Any) -> Int100Tensor:
     assert isinstance(x, Int100Tensor), type(x)
     backing = [tf.strided_slice(xi, *args, **kwargs) for xi in x.backing]
     return Int100Tensor.from_decomposed(backing)
@@ -259,40 +298,23 @@ def _reshape(x: Int100Tensor, axes: List[int]) -> Int100Tensor:
     return Int100Tensor.from_decomposed(backing)
 
 
-def _expand_dims(x, axis=None):
+def _expand_dims(x: Int100Tensor, axis: Optional[int]=None) -> Int100Tensor:
     assert isinstance(x, Int100Tensor), type(x)
     backing = [tf.expand_dims(xi, axis) for xi in x.backing]
     return Int100Tensor.from_decomposed(backing)
 
 
-def _squeeze(x, axis=None):
+def _squeeze(x: Int100Tensor, axis: Optional[List[int]]=None) -> Int100Tensor:
     assert isinstance(x, Int100Tensor), type(x)
     backing = [tf.squeeze(xi, axis=axis) for xi in x.backing]
     return Int100Tensor.from_decomposed(backing)
 
 
-def stack(xs: List[Int100Tensor], axis: int = 0):
-    assert all(isinstance(x, Int100Tensor) for x in xs)
-    backing = [
-        tf.stack([x.backing[i] for x in xs], axis=axis)
-        for i in range(len(xs[0].backing))
-    ]
-    return Int100Tensor.from_decomposed(backing)
+class Int100Constant(Int100Tensor, AbstractConstant):
 
-
-def concat(xs: List[Int100Tensor], axis: int = 0):
-    assert all(isinstance(x, Int100Tensor) for x in xs)
-    backing = [
-        tf.concat([x.backing[i] for x in xs], axis=axis)
-        for i in range(len(xs[0].backing))
-    ]
-    return Int100Tensor.from_decomposed(backing)
-
-
-class Int100Constant(Int100Tensor):
-
-    def __init__(self, native_value: np.ndarray, int100_value=None) -> None:
-        if int100_value is None:
+    def __init__(self, native_value: Optional[Union[np.ndarray, tf.Tensor]],
+                 int100_value: Optional[Int100Tensor]=None) -> None:
+        if int100_value is None and native_value is not None:
             int100_value = Int100Tensor.from_native(native_value)
 
         assert type(int100_value) in [Int100Tensor], type(int100_value)
@@ -302,12 +324,12 @@ class Int100Constant(Int100Tensor):
         super(Int100Constant, self).__init__(None, backing)
 
     @staticmethod
-    def from_native(value: np.ndarray) -> 'Int100Constant':
+    def from_native(value: Union[np.ndarray, tf.Tensor]) -> 'Int100Constant':
         assert type(value) in [np.ndarray, tf.Tensor], type(value)
         return Int100Constant(value, None)
 
     @staticmethod
-    def from_backing(value: Int100Tensor) -> 'Int100Constant':
+    def from_same(value: Int100Tensor) -> 'Int100Constant':
         assert type(value) in [Int100Tensor], type(value)
         return Int100Constant(None, value)
 
@@ -315,9 +337,9 @@ class Int100Constant(Int100Tensor):
         return 'Int100Constant({})'.format(self.shape)
 
 
-class Int100Placeholder(Int100Tensor):
+class Int100Placeholder(Int100Tensor, AbstractPlaceholder):
 
-    def __init__(self, shape):
+    def __init__(self, shape: List[int]) -> None:
         placeholders = [tf.placeholder(INT_TYPE, shape=shape) for _ in m]
 
         super(Int100Placeholder, self).__init__(None, placeholders)
@@ -327,7 +349,7 @@ class Int100Placeholder(Int100Tensor):
         assert type(value) in [np.ndarray], type(value)
         return _feed(self, value, None)
 
-    def feed_from_backing(self, value):
+    def feed_from_same(self, value):
         assert type(value) in [Int100Tensor], type(value)
         return _feed(self, None, value)
 
@@ -347,7 +369,7 @@ def _feed(placeholder, native_value, int100_value=None):
     }
 
 
-class Int100Variable(Int100Tensor):
+class Int100Variable(Int100Tensor, AbstractVariable):
 
     def __init__(self, native_initial_value, int100_initial_value=None):
         if int100_initial_value is None:
@@ -369,7 +391,7 @@ class Int100Variable(Int100Tensor):
         return Int100Variable(initial_value, None)
 
     @staticmethod
-    def from_backing(initial_value):
+    def from_same(initial_value):
         assert type(initial_value) in [Int100Tensor], type(initial_value)
         return Int100Variable(None, initial_value)
 
@@ -380,12 +402,12 @@ class Int100Variable(Int100Tensor):
         assert type(value) in [np.ndarray], type(value)
         return _assign(self, value, None)
 
-    def assign_from_backing(self, value):
+    def assign_from_same(self, value):
         assert isinstance(value, Int100Tensor), type(value)
         return _assign(self, None, value)
 
 
-def _assign(variable, native_value, decomposed_value=None):
+def _assign(variable, native_value, decomposed_value=None) -> tf.Operation:
     if decomposed_value is None:
         decomposed_value = Int100Tensor.from_native(native_value)
 
@@ -394,3 +416,24 @@ def _assign(variable, native_value, decomposed_value=None):
 
     ops = [tf.assign(xi, vi).op for xi, vi in zip(variable.variables, decomposed_value.backing)]
     return tf.group(*ops)
+
+
+class Int100Factory(AbstractFactory):
+    @property
+    def Tensor(self) -> Type[Int100Tensor]:
+        return Int100Tensor
+
+    @property
+    def Constant(self) -> Type[Int100Constant]:
+        return Int100Constant
+
+    @property
+    def Variable(self) -> Type[Int100Variable]:
+        return Int100Variable
+
+    def Placeholder(self, shape: List[int]) -> Int100Placeholder:
+        return Int100Placeholder(shape)
+
+    @property
+    def modulus(self) -> int:
+        return M

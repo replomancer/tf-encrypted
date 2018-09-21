@@ -140,6 +140,9 @@ class Tensor:
     def __mod__(self, other):
         ...
 
+    def __getitem__(self, slice):
+        ...
+
 
 class SparseTensor:
     ...
@@ -150,6 +153,9 @@ class TensorShape:
         ...
 
     def is_fully_defined(self) -> bool:
+        ...
+
+    def __len__(self) -> int:
         ...
 
 
