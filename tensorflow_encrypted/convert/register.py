@@ -1,22 +1,24 @@
 import tensorflow as tf
 import numpy as np
 import array
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Callable
 
 from ..layers import Conv2D, Relu, Sigmoid, Dense, AveragePooling2D
 from .convert import Converter, ConvertInputProvider
 
 from tensorflow_encrypted.protocol.pond import PondPublicTensor
 
+RegisterFunc = Dict[str, Callable[[Converter, tf.NodeDef, List[str]], Any]]
 
-def register() -> Dict[str, Any]:
+
+def register() -> RegisterFunc:
     """
     Register the tensorflow ops to the right conversion functions.
 
     Returns:
         Dictionary that contains a mapping from tensorflow op name to conversion function.
     """
-    reg = {
+    reg: RegisterFunc = {
         'Placeholder': placeholder,
         'Const': constant,
         'Conv2D': conv2d,
@@ -44,13 +46,13 @@ def register() -> Dict[str, Any]:
     return reg
 
 
-def placeholder(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def placeholder(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -59,13 +61,13 @@ def placeholder(converter: Converter, node: Any, inputs: List[str]) -> Any:
                           shape=node.attr["shape"].shape)
 
 
-def constant(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def constant(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -74,13 +76,13 @@ def constant(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return node
 
 
-def matmul(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def matmul(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -112,13 +114,13 @@ def matmul(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return layer.forward(a)
 
 
-def conv2d(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def conv2d(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -155,13 +157,13 @@ def conv2d(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return out
 
 
-def relu(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def relu(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -171,13 +173,13 @@ def relu(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return Relu(input.shape.as_list()).forward(input)
 
 
-def sigmoid(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def sigmoid(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -187,13 +189,13 @@ def sigmoid(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return Sigmoid(input.shape.as_list()).forward(input)
 
 
-def strided_slice(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def strided_slice(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -221,13 +223,13 @@ def strided_slice(converter: Converter, node: Any, inputs: List[str]) -> Any:
                                             shrink_axis_mask=shrink_axis_mask)
 
 
-def pack(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def pack(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -240,13 +242,13 @@ def pack(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return converter.protocol.stack(final_inputs, axis=node.attr["axis"].i)
 
 
-def bias_add(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def bias_add(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -259,13 +261,13 @@ def bias_add(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return input + bias
 
 
-def maxpool(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def maxpool(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -279,13 +281,13 @@ def maxpool(converter: Converter, node: Any, inputs: List[str]) -> Any:
                           node.attr["padding"].s)
 
 
-def shape(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def shape(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -295,13 +297,13 @@ def shape(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return input.shape
 
 
-def reshape(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def reshape(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -321,13 +323,13 @@ def reshape(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return converter.protocol.reshape(input, list(nums))
 
 
-def transpose(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def transpose(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -349,13 +351,13 @@ def transpose(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return converter.protocol.transpose(input, np.array(nums).reshape(shape))
 
 
-def expand_dims(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def expand_dims(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -368,13 +370,13 @@ def expand_dims(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return converter.protocol.expand_dims(input, axis_val)
 
 
-def squeeze(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def squeeze(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -385,13 +387,13 @@ def squeeze(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return converter.protocol.squeeze(input, list(axis))
 
 
-def rsqrt(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def rsqrt(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -418,13 +420,13 @@ def rsqrt(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return x
 
 
-def add(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def add(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -445,13 +447,13 @@ def add(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return converter.protocol.add(a_out, b_out)
 
 
-def sub(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def sub(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -472,13 +474,13 @@ def sub(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return converter.protocol.sub(a_out, b_out)
 
 
-def mul(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def mul(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -499,13 +501,13 @@ def mul(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return converter.protocol.mul(a_out, b_out)
 
 
-def avgpool(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def avgpool(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
     """
 
     Args:
-      converter: Converter:
-      node: Any:
-      inputs: List[str]:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
 
     Returns:
 
@@ -530,7 +532,18 @@ def avgpool(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return out
 
 
-def concat(converter: Converter, node: Any, inputs: List[str]) -> Any:
+def concat(converter: Converter, node: tf.NodeDef, inputs: List[str]) -> Any:
+    """
+
+    Args:
+      converter: `Converter`: The converter used to form the correct ops.
+      node: `tf.NodeDef`: The node that's going to be converted.
+      inputs: List[str]: The list of inputs into the given node.
+
+    Returns:
+
+    """
+
     input0 = converter.outputs[inputs[0]]
     input1 = converter.outputs[inputs[1]]
     axis = converter.outputs[inputs[2]]
@@ -538,12 +551,12 @@ def concat(converter: Converter, node: Any, inputs: List[str]) -> Any:
     return converter.protocol.concat([input0, input1], axis.attr["value"].tensor.int_val[0])
 
 
-def nodef_to_public_pond(converter: Converter, x: Any) -> PondPublicTensor:
+def nodef_to_public_pond(converter: Converter, x: tf.NodeDef) -> PondPublicTensor:
     """
 
     Args:
-      converter: Converter:
-      x: Any:
+      converter: `Converter`: The converter used to form the correct ops.
+      x: `tf.NodeDef`: the node to convert
 
     Returns:
 
@@ -566,7 +579,17 @@ def nodef_to_public_pond(converter: Converter, x: Any) -> PondPublicTensor:
     return x_public
 
 
-def nodef_to_numpy_array(x: Any) -> np.ndarray:
+def nodef_to_numpy_array(x: tf.NodeDef) -> np.ndarray:
+    """
+
+    Args:
+      converter: `Converter`: The converter used to form the correct ops.
+      x: `tf.NodeDef`: the node to convert
+
+    Returns:
+
+    """
+
     dtype = x.attr["dtype"].type
     x_shape = [i.size for i in x.attr["value"].tensor.tensor_shape.dim]
 

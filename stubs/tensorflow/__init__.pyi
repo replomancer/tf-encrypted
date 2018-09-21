@@ -148,7 +148,13 @@ class SparseTensor:
     ...
 
 
+class Dimension:
+    size: int
+
+
 class TensorShape:
+    dim: List[Dimension]
+
     def __init__(self, dims: Optional[List[Any]] = None) -> None:
         ...
 
@@ -193,7 +199,7 @@ class NodeDef:
         ...
 
     @property
-    def attr(self) -> List['AttrValue']:
+    def attr(self) -> Dict[str, 'AttrValue']:
         ...
 
     @property
@@ -201,8 +207,22 @@ class NodeDef:
         ...
 
 
+class TensorValue:
+    tensor_content: str
+    tensor_shape: TensorShape
+
+
+class ListValue:
+    i: List[int]
+
+
 class AttrValue:
-    ...
+    type: TFTypes
+    tensor: TensorValue
+    s: bytes
+    list: ListValue
+    i: int
+    shape: TensorShape
 
 
 class GraphDef:
