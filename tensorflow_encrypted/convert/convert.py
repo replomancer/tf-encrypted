@@ -1,4 +1,4 @@
-"""Convert module helps convert pre-trained tensorflow models to a useable format."""
+"""Convert module helps convert pre-trained tensorflow models to a usable format."""
 
 
 from typing import Dict, Tuple, List, Any, Union

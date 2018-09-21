@@ -1,11 +1,12 @@
 import functools
-from typing import Optional, Type, List, Dict, Any
+from typing import Optional, Type, List, Dict, Any, Union
 from types import TracebackType
 
 import tensorflow as tf
 from ..io import InputProvider
 
 from ..tensor.tensor import AbstractTensor
+from .pond import PondPrivateTensor, PondMaskedTensor
 
 
 _current_prot = None
@@ -31,7 +32,7 @@ class Protocol(object):
         apply_scaling: bool=True,
         name: Optional[str]=None,
         masked: bool=False
-    ) -> Union['PondPrivateTensor', 'PondMaskedTensor', List['PondPrivateTensor'], List['PondMaskedTensor']]:
+    ) -> Union[PondPrivateTensor, PondMaskedTensor, List[PondPrivateTensor], List[PondMaskedTensor]]:
         raise NotImplementedError()
 
 
